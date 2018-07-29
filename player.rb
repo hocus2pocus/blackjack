@@ -1,6 +1,6 @@
 class Player
-  attr_accessor @hand
-  attr_reader @player_name, @bank
+  attr_accessor :hand
+  attr_reader :player_name, :bank
 
   def initialize(player_name)
     @player_name = player_name
@@ -8,14 +8,7 @@ class Player
     @hand = []
   end
 
-  def place_a_bet
-    bet = 10
+  def place_a_bet(bet)
     @bank -= bet
   end
-
-  def take_cards
-
-  end
-
-
 end
