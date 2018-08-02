@@ -2,9 +2,9 @@ class Player
   attr_accessor :hand, :bank
   attr_reader :player_name
 
-  def initialize(player_name)
+  def initialize(player_name, bank)
     @player_name = player_name
-    @bank = 100
+    @bank = bank
     @hand = []
   end
 

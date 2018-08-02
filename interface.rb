@@ -1,15 +1,23 @@
 require_relative 'playing_field.rb'
+require_relative 'constants.rb'
+require_relative 'interface_support.rb'
 
 class Interface
   include PlayingField
+  include Constants
+  include InterfaceSupport
+
+  attr_accessor :open_hands
   attr_reader :player, :dealer, :game_bank, :deck
+
   def initialize
     @game_bank = 0
-    @bet = 10
+    @bet = BET
+    @open_hands = 0
   end
 
   def start
-    generate_players unless @player
+    generate_players
     bank_check(@bet)
     place_a_bet(@bet)
     generate_deck
@@ -20,22 +28,21 @@ class Interface
   end
 
   def next_step(step)
-    if @player.hand[2] && @dealer.hand[2]
-      open_hands
-    end
+    open_hands_forced
 
     case step
     when "П"
-      @game_bank == 0 ? game_over : dealer_step
+      @open_hands == 1 ? game_over : dealer_step
     when "Д"
-      @game_bank == 0 ? game_over : one_more_card(@player)
+      @open_hands == 1 ? game_over : one_more_card(@player)
+      dealer_step_give
     when "О"
-      @game_bank == 0 ? game_over : open_hands
+      @open_hands == 1 ? game_over : open_hands
     when "Н"
       clear_field
-      @game_bank != 0 ? game_over : start
+      @open_hands == 1 ? game_over : start
     else
-      puts "Неизвестная команда"
+      unknown_command
       management
     end
   end
@@ -43,14 +50,12 @@ class Interface
   def dealer_step
     score = live_scores(@dealer)
 
-    if score >= 17
-      puts "Дилер решил пропустить ход"
+    if score >= DEALER_DECISION
+      dealer_step_skip
       playing_field_hidden
       management
     else
-      @dealer.hand << @deck.lose_cards(1)
-      @dealer.hand.flatten!
-      playing_field_hidden
+      one_more_card(@dealer)
       management
     end
   end
@@ -60,16 +65,17 @@ class Interface
     player.hand.flatten!
     playing_field_hidden
 
-    if @dealer.hand[2] && @player.hand[2]
+    open_hands_forced
+  end
+
+  def open_hands_forced
+    if @player.hand[2] && @dealer.hand[2]
       open_hands
-    else
-      puts "Нажмите Enter для передачи хода Дилеру"
-      print "> "
-      dealer_step if gets
     end
   end
 
   def open_hands
+    @open_hands = 1
     playing_field
 
     dealer_scores = live_scores(@dealer)
@@ -79,63 +85,75 @@ class Interface
     winner(dealer_scores, player_scores)
   end
 
+  def live_scores(player)
+    scores = 0
+
+    player.hand.each do |card|
+      score = card[0]
+
+      if score.to_i >= 2
+        scores += score.to_i
+      elsif ['1', 'J', 'Q', 'K'].include?(score)
+        scores += 10
+      else
+        scores <= 10 ? scores += 11 : scores += 1
+      end
+    end
+    scores
+  end
+
   def same_score(dealer_scores, player_scores)
     if dealer_scores == player_scores
-      puts "Победила дружба"
-      @dealer.bank += @bet
-      @player.bank += @bet
-      @game_bank = 0
+      standoff
+      bet_refund
       management
     end
   end
 
   def check_scores(dealer_scores, player_scores)
-    if dealer_scores > 21 && player_scores > 21
-      puts "Дружба проиграла"
-      @dealer.bank += @bet
-      @player.bank += @bet
-      @game_bank = 0
+    if dealer_scores > WIN_LIMIT && player_scores > WIN_LIMIT
+      standoff
+      bet_refund
       management
-    elsif dealer_scores > 21
-      puts "Победил #{@player.player_name}"
-      @player.bank += @game_bank
-      @game_bank = 0
+    elsif dealer_scores > WIN_LIMIT
+      winner_name(@player)
       management
-    elsif player_scores > 21
-      puts "Победил #{@dealer.player_name}"
-      @dealer.bank += @game_bank
-      @game_bank = 0
+    elsif player_scores > WIN_LIMIT
+      winner_name(@dealer)
       management
     end
   end
 
   def winner(dealer_scores, player_scores)
     if dealer_scores > player_scores
-      puts "Победил #{@dealer.player_name}"
-      @dealer.bank += @game_bank
-      @game_bank = 0
+      reward(@dealer)
       management
     elsif dealer_scores < player_scores
-      puts "Победил #{@player.player_name}"
-      @player.bank += @game_bank
-      @game_bank = 0
+      reward(@player)
       management
     end
   end
 
+  def bet_refund
+    @dealer.bank += @bet
+    @player.bank += @bet
+  end
+
+  def reward(player)
+    winner_name(player)
+    player.bank += @game_bank
+  end
+
   def generate_players
-    puts "Введите имя:"
-    print "> "
-    @player = Player.new(gets.chomp)
-    @dealer = Player.new('Dealer')
+    return @player if @player
+    @player = Player.new(name_getter, PLAYER_BANK)
+    @dealer = Player.new('Dealer', PLAYER_BANK)
   end
 
   def bank_check(min_bet)
     [@player, @dealer].each do |player|
       if player.bank < min_bet
-        puts "Игрок #{player.player_name} проигрался, у него в банке всего #{player.bank}"
-        puts "Выход из игры"
-        exit
+        out_of_money(player)
       end
     end
   end
@@ -160,9 +178,7 @@ class Interface
     @dealer.hand = []
     @player.hand = []
     @deck = []
-  end
-
-  def game_over
-    puts "Игра окончена"
+    @game_bank = 0
+    @open_hands = 0
   end
 end

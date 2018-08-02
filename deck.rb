@@ -16,8 +16,6 @@ class Deck
   end
 
   def lose_cards(quantity)
-    cards = @deck.take(quantity)
-    @deck = @deck.drop(quantity)
-    cards
+    @deck.shift(quantity)
   end
 end

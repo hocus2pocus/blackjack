@@ -38,29 +38,12 @@ module PlayingField
 
   def management
     print "Управление: "
-    print "| (П)ропустить ход |" unless @game_bank == 0
-    print "| (Д)обавить карту |" unless @player.hand[2] || @game_bank == 0
-    print "| (О)ткрыть карты |" unless @game_bank == 0
-    print "| (Н)овая игра |" if @game_bank == 0
+    print "| (П)ропустить ход |" unless @open_hands == 1
+    print "| (Д)обавить карту |" unless @player.hand[2] || @open_hands == 1
+    print "| (О)ткрыть карты |" unless @open_hands == 1
+    print "| (Н)овая игра |" if @open_hands == 1
     puts ""
     print "> "
     next_step(gets.chomp)
-  end
-
-  def live_scores(player)
-    scores = 0
-
-    player.hand.each do |card|
-      score = card[0]
-
-      if score.to_i >= 2
-        scores += score.to_i
-      elsif ['1', 'J', 'Q', 'K'].include?(score)
-        scores += 10
-      else
-        scores <= 10 ? scores += 11 : scores += 1
-      end
-    end
-    scores
   end
 end
