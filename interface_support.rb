@@ -10,7 +10,7 @@ module InterfaceSupport
   def dealer_step_give
     puts "Нажмите Enter для передачи хода Дилеру"
     print "> "
-    dealer_step if gets
+    gets
   end
 
   def winner_name(player)

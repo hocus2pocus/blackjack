@@ -24,7 +24,7 @@ class Interface
     deal
 
     playing_field_hidden
-    management
+    next_step(next_step(management))
   end
 
   def next_step(step)
@@ -35,7 +35,7 @@ class Interface
       @open_hands == 1 ? game_over : dealer_step
     when "Д"
       @open_hands == 1 ? game_over : one_more_card(@player)
-      dealer_step_give
+      dealer_step if dealer_step_give
     when "О"
       @open_hands == 1 ? game_over : open_hands
     when "Н"
@@ -43,7 +43,7 @@ class Interface
       @open_hands == 1 ? game_over : start
     else
       unknown_command
-      management
+      next_step(management)
     end
   end
 
@@ -53,10 +53,10 @@ class Interface
     if score >= DEALER_DECISION
       dealer_step_skip
       playing_field_hidden
-      management
+      next_step(management)
     else
       one_more_card(@dealer)
-      management
+      next_step(management)
     end
   end
 
@@ -106,7 +106,7 @@ class Interface
     if dealer_scores == player_scores
       standoff
       bet_refund
-      management
+      next_step(management)
     end
   end
 
@@ -114,34 +114,29 @@ class Interface
     if dealer_scores > WIN_LIMIT && player_scores > WIN_LIMIT
       standoff
       bet_refund
-      management
+      next_step(management)
     elsif dealer_scores > WIN_LIMIT
       winner_name(@player)
-      management
+      next_step(management)
     elsif player_scores > WIN_LIMIT
       winner_name(@dealer)
-      management
+      next_step(management)
     end
   end
 
   def winner(dealer_scores, player_scores)
     if dealer_scores > player_scores
       reward(@dealer)
-      management
+      next_step(management)
     elsif dealer_scores < player_scores
       reward(@player)
-      management
+      next_step(management)
     end
-  end
-
-  def bet_refund
-    @dealer.bank += @bet
-    @player.bank += @bet
   end
 
   def reward(player)
     winner_name(player)
-    player.bank += @game_bank
+    player.bet_refund(@game_bank)
   end
 
   def generate_players
@@ -162,6 +157,11 @@ class Interface
     @player.place_a_bet(bet)
     @dealer.place_a_bet(bet)
     @game_bank += bet*2
+  end
+
+  def bet_refund
+    @player.bet_refund(bet)
+    @dealer.bet_refund(bet)
   end
 
   def generate_deck

@@ -44,6 +44,6 @@ module PlayingField
     print "| (Н)овая игра |" if @open_hands == 1
     puts ""
     print "> "
-    next_step(gets.chomp)
+    gets.chomp
   end
 end

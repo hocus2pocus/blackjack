@@ -11,4 +11,8 @@ class Player
   def place_a_bet(bet)
     @bank -= bet
   end
+
+  def bet_refund(bet)
+    @bank += bet
+  end
 end
