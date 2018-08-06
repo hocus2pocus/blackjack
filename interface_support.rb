@@ -3,6 +3,10 @@ module InterfaceSupport
     puts "Неизвестная команда"
   end
 
+  def error_message
+    puts "Руки игроков открыты, выбранная команда недоступна"
+  end
+
   def dealer_step_skip
     puts "Дилер решил пропустить ход"
   end

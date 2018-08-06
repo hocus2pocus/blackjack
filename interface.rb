@@ -11,38 +11,48 @@ class Interface
   attr_reader :player, :dealer, :game_bank, :deck
 
   def initialize
-    @game_bank = 0
+    @game_bank = GameBank.new
     @bet = BET
-    @open_hands = 0
+    @hands_are_open = 0
   end
 
   def start
-    generate_players
-    bank_check(@bet)
-    place_a_bet(@bet)
+    generate_players unless @player
+    player_bank_check(@bet)
+    @game_bank.place_a_bet(@bet, @player, @dealer)
     generate_deck
     deal
 
     playing_field_hidden
-    next_step(next_step(management))
+    next_step(management)
   end
 
   def next_step(step)
-    open_hands_forced
+    open_hands_forced unless @hands_are_open == 1
 
     case step
     when "П"
-      @open_hands == 1 ? game_over : dealer_step
+      game_state_error
+      dealer_step
     when "Д"
-      @open_hands == 1 ? game_over : one_more_card(@player)
+      game_state_error
+      one_more_card(@player)
       dealer_step if dealer_step_give
     when "О"
-      @open_hands == 1 ? game_over : open_hands
+      game_state_error
+      open_hands
     when "Н"
       clear_field
-      @open_hands == 1 ? game_over : start
+      start
     else
       unknown_command
+      next_step(management)
+    end
+  end
+
+  def game_state_error
+    if @hands_are_open == 1
+      error_message
       next_step(management)
     end
   end
@@ -68,14 +78,16 @@ class Interface
     open_hands_forced
   end
 
+  def both_players_has_three_cards?
+    @player.hand[2] && @dealer.hand[2]
+  end
+
   def open_hands_forced
-    if @player.hand[2] && @dealer.hand[2]
-      open_hands
-    end
+    open_hands if both_players_has_three_cards?
   end
 
   def open_hands
-    @open_hands = 1
+    @hands_are_open = 1
     playing_field
 
     dealer_scores = live_scores(@dealer)
@@ -86,26 +98,13 @@ class Interface
   end
 
   def live_scores(player)
-    scores = 0
-
-    player.hand.each do |card|
-      score = card[0]
-
-      if score.to_i >= 2
-        scores += score.to_i
-      elsif ['1', 'J', 'Q', 'K'].include?(score)
-        scores += 10
-      else
-        scores <= 10 ? scores += 11 : scores += 1
-      end
-    end
-    scores
+    player.card_cost(player.hand)
   end
 
   def same_score(dealer_scores, player_scores)
     if dealer_scores == player_scores
       standoff
-      bet_refund
+      @game_bank.bet_refund(@bet, @player, @dealer)
       next_step(management)
     end
   end
@@ -113,13 +112,13 @@ class Interface
   def check_scores(dealer_scores, player_scores)
     if dealer_scores > WIN_LIMIT && player_scores > WIN_LIMIT
       standoff
-      bet_refund
+      @game_bank.bet_refund(@bet, @player, @dealer)
       next_step(management)
     elsif dealer_scores > WIN_LIMIT
-      winner_name(@player)
+      reward(@player)
       next_step(management)
     elsif player_scores > WIN_LIMIT
-      winner_name(@dealer)
+      reward(@dealer)
       next_step(management)
     end
   end
@@ -136,32 +135,18 @@ class Interface
 
   def reward(player)
     winner_name(player)
-    player.bet_refund(@game_bank)
+    @game_bank.winner_reward(player)
   end
 
   def generate_players
-    return @player if @player
     @player = Player.new(name_getter, PLAYER_BANK)
     @dealer = Player.new('Dealer', PLAYER_BANK)
   end
 
-  def bank_check(min_bet)
+  def player_bank_check(min_bet)
     [@player, @dealer].each do |player|
-      if player.bank < min_bet
-        out_of_money(player)
-      end
+      out_of_money(player) if player.bank < min_bet
     end
-  end
-
-  def place_a_bet(bet)
-    @player.place_a_bet(bet)
-    @dealer.place_a_bet(bet)
-    @game_bank += bet*2
-  end
-
-  def bet_refund
-    @player.bet_refund(bet)
-    @dealer.bet_refund(bet)
   end
 
   def generate_deck
@@ -178,7 +163,7 @@ class Interface
     @dealer.hand = []
     @player.hand = []
     @deck = []
-    @game_bank = 0
-    @open_hands = 0
+    @game_bank.new_con
+    @hands_are_open = 0
   end
 end

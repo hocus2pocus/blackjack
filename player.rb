@@ -1,4 +1,8 @@
+require_relative 'scoring.rb'
+
 class Player
+  include Scoring
+
   attr_accessor :hand, :bank
   attr_reader :player_name
 
@@ -8,11 +12,11 @@ class Player
     @hand = []
   end
 
-  def place_a_bet(bet)
+  def give_money(bet)
     @bank -= bet
   end
 
-  def bet_refund(bet)
+  def take_money(bet)
     @bank += bet
   end
 end

@@ -10,9 +10,11 @@ class Deck
 
   def generate_deck
     SUIT.each do |suit|
-      @deck << CARDS.map { |card| card + suit }
+      CARDS.each do |rank|
+        @deck << Card.new(suit, rank)
+      end
     end
-    @deck.flatten!.shuffle!
+    @deck.shuffle!
   end
 
   def lose_cards(quantity)
