@@ -1,5 +1,5 @@
 class GameBank
-attr_reader :con
+  attr_reader :con
 
   def initialize
     @con = 0

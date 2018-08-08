@@ -7,7 +7,6 @@ class Interface
   include Constants
   include InterfaceSupport
 
-  attr_accessor :open_hands
   attr_reader :player, :dealer, :game_bank, :deck
 
   def initialize
@@ -51,10 +50,9 @@ class Interface
   end
 
   def game_state_error
-    if @hands_are_open == 1
-      error_message
-      next_step(management)
-    end
+    return unless @hands_are_open == 1
+    error_message
+    next_step(management)
   end
 
   def dealer_step
@@ -63,11 +61,10 @@ class Interface
     if score >= DEALER_DECISION
       dealer_step_skip
       playing_field_hidden
-      next_step(management)
     else
       one_more_card(@dealer)
-      next_step(management)
     end
+    next_step(management)
   end
 
   def one_more_card(player)
